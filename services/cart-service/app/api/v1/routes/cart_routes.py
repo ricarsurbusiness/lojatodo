@@ -57,3 +57,13 @@ async def remove_from_cart(
     cart_service: CartService = Depends(get_cart_service)
 ):
     return await cart_service.remove_item(current_user.user_id, product_id)
+
+
+@router.post("/decrease", response_model=CartResponse)
+async def decrease_item(
+    product_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    cart_service: CartService = Depends(get_cart_service)
+):
+    """Decrease item quantity by 1. Removes item if quantity reaches 0."""
+    return await cart_service.decrease_item(current_user.user_id, product_id)

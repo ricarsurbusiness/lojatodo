@@ -6,6 +6,7 @@ from fastapi import HTTPException, status
 
 from app.schemas.cart_schema import CartItemResponse, CartResponse
 from app.services.product_client import validate_product_exists
+from app.services.inventory_client import validate_inventory_available
 
 
 CART_KEY_PREFIX = "cart:"
@@ -44,7 +45,11 @@ class CartService:
         )
 
     async def add_item(self, user_id: int, product_id: int, quantity: int) -> CartResponse:
+        # Validate product exists
         product = await validate_product_exists(product_id)
+        
+        # Validate inventory has available stock
+        await validate_inventory_available(product_id, quantity)
         
         cart_key = get_cart_key(user_id)
         existing_item = await self.redis.hget(cart_key, str(product_id))
@@ -83,7 +88,7 @@ class CartService:
         if not existing_item:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Item not found in cart"
+                detail="Producto no encontrado en el carrito"
             )
         
         product = await validate_product_exists(product_id)
@@ -96,6 +101,30 @@ class CartService:
         }
         
         await self.redis.hset(cart_key, str(product_id), json.dumps(item_data))
+        
+        return await self.get_cart(user_id)
+
+    async def decrease_item(self, user_id: int, product_id: int) -> CartResponse:
+        """Decrease item quantity by 1. Remove item if quantity reaches 0."""
+        cart_key = get_cart_key(user_id)
+        
+        existing_item = await self.redis.hget(cart_key, str(product_id))
+        if not existing_item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Producto no encontrado en el carrito"
+            )
+        
+        item_data = json.loads(existing_item)
+        current_quantity = item_data["quantity"]
+        
+        if current_quantity <= 1:
+            # Remove completely if quantity is 1 or less
+            await self.redis.hdel(cart_key, str(product_id))
+        else:
+            # Decrease by 1
+            item_data["quantity"] = current_quantity - 1
+            await self.redis.hset(cart_key, str(product_id), json.dumps(item_data))
         
         return await self.get_cart(user_id)
 

@@ -6,6 +6,7 @@ class CartServiceSettings(BaseSettings):
     REDIS_PORT: int = 6379
     
     PRODUCT_SERVICE_URL: str = "http://localhost:8002"
+    INVENTORY_SERVICE_URL: str = "http://localhost:8005"
     AUTH_SERVICE_URL: str = "http://localhost:8001"
     
     JWT_SECRET_KEY: str = "your-secret-key-change-in-production"

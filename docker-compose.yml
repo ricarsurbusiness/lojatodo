@@ -69,6 +69,7 @@ services:
       - REDIS_HOST=redis-cart
       - REDIS_PORT=6379
       - PRODUCT_SERVICE_URL=http://product-service:8002
+      - INVENTORY_SERVICE_URL=http://inventory-service:8005
       - AUTH_SERVICE_URL=http://auth-service:8001
       - JWT_SECRET_KEY=your-secret-key-change-in-production
       - JWT_ALGORITHM=HS256
@@ -198,8 +199,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=auth_db
-    ports:
-      - "54320:5432"
     volumes:
       - postgres-auth-data:/var/lib/postgresql/data
     healthcheck:
@@ -217,8 +216,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=product_db
-    ports:
-      - "54321:5432"
     volumes:
       - postgres-product-data:/var/lib/postgresql/data
     healthcheck:
@@ -236,8 +233,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=order_db
-    ports:
-      - "54322:5432"
     volumes:
       - postgres-order-data:/var/lib/postgresql/data
     healthcheck:
@@ -255,8 +250,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=inventory_db
-    ports:
-      - "54323:5432"
     volumes:
       - postgres-inventory-data:/var/lib/postgresql/data
     healthcheck:
@@ -274,8 +267,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=payment_db
-    ports:
-      - "54324:5432"
     volumes:
       - postgres-payment-data:/var/lib/postgresql/data
     healthcheck:
@@ -391,9 +382,6 @@ services:
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
-    ports:
-      - "5673:5672"
-      - "15673:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
@@ -410,8 +398,6 @@ services:
   redis-analytics:
     image: redis:7-alpine
     container_name: redis-analytics
-    ports:
-      - "6381:6379"
     volumes:
       - redis-analytics-data:/data
     healthcheck:
@@ -429,8 +415,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=notification_db
-    ports:
-      - "54325:5432"
     volumes:
       - postgres-notification-data:/var/lib/postgresql/data
     healthcheck:
@@ -448,8 +432,6 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=analytics_db
-    ports:
-      - "54326:5432"
     volumes:
       - postgres-analytics-data:/var/lib/postgresql/data
     healthcheck:
@@ -463,8 +445,6 @@ services:
   redis-cart:
     image: redis:7-alpine
     container_name: redis-cart
-    ports:
-      - "6382:6379"
     volumes:
       - redis-cart-data:/data
     healthcheck:
