@@ -18,7 +18,9 @@ class InventoryService:
     async def create_inventory(self, product_id: int, quantity: int = 0) -> Inventory:
         existing = await self.inventory_repo.get_inventory_by_product_id(product_id)
         if existing:
-            return existing
+            # Sumar la cantidad al inventario existente
+            existing.quantity += quantity
+            return await self.inventory_repo.update_inventory(existing)
         return await self.inventory_repo.create_inventory(product_id, quantity)
     
     async def update_inventory_quantity(self, product_id: int, quantity: int) -> Optional[Inventory]:

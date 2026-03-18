@@ -48,16 +48,24 @@ class CartService:
         # Validate product exists
         product = await validate_product_exists(product_id)
         
-        # Validate inventory has available stock
-        await validate_inventory_available(product_id, quantity)
-        
         cart_key = get_cart_key(user_id)
         existing_item = await self.redis.hget(cart_key, str(product_id))
         
+        # Calculate current quantity in cart
+        current_quantity = 0
         if existing_item:
             item_data = json.loads(existing_item)
-            new_quantity = item_data["quantity"] + quantity
-            item_data["quantity"] = new_quantity
+            current_quantity = item_data["quantity"]
+        
+        # Calculate new total quantity
+        new_total_quantity = current_quantity + quantity
+        
+        # Validate against available inventory (considering current cart quantity)
+        inventory_info = await validate_inventory_available(product_id, new_total_quantity)
+        
+        if existing_item:
+            item_data = json.loads(existing_item)
+            item_data["quantity"] = new_total_quantity
             await self.redis.hset(
                 cart_key, 
                 str(product_id), 
