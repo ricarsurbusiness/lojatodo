@@ -89,6 +89,7 @@ async def list_orders(
         items=[
             OrderSummaryResponse(
                 id=item.id,
+                user_id=item.user_id,
                 status=item.status,
                 total_amount=item.total_amount,
                 created_at=item.created_at,
@@ -142,7 +143,7 @@ async def ship_order(
     current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    if "admin" not in current_user.roles:
+    if "admin" not in current_user.roles and "superAdmin" not in current_user.roles:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
 
     service = OrderService(db)
@@ -167,3 +168,47 @@ async def ship_order(
         carrier=order.carrier,
         updated_at=order.updated_at,
     )
+
+
+@router.get("/admin/all", response_model=OrderListResponse)
+async def list_all_orders_admin(
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if "admin" not in current_user.roles and "superAdmin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+
+    service = OrderService(db)
+    items, total = await service.list_all_orders(page=page, limit=limit)
+    pages = ceil(total / limit) if total > 0 else 0
+
+    return OrderListResponse(
+        items=[
+            OrderSummaryResponse(
+                id=item.id,
+                user_id=item.user_id,
+                status=item.status,
+                total_amount=item.total_amount,
+                created_at=item.created_at,
+            )
+            for item in items
+        ],
+        total=total,
+        page=page,
+        pages=pages,
+    )
+
+
+@router.get("/admin/count")
+async def get_order_count_admin(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if "admin" not in current_user.roles and "superAdmin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+
+    service = OrderService(db)
+    count = await service.count_all_orders()
+    return {"count": count}

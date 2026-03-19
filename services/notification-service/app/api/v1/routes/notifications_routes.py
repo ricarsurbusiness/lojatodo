@@ -14,7 +14,7 @@ from app.tasks.email_tasks import send_email_task
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
-@router.post("/send", response_model=NotificationSendResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=NotificationSendResponse, status_code=status.HTTP_201_CREATED)
 async def send_notification(
     payload: NotificationSendRequest,
     db: AsyncSession = Depends(get_notification_db),

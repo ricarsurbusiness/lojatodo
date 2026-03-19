@@ -39,6 +39,7 @@ class OrderSummaryResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    user_id: Optional[int] = None
     status: OrderStatus
     total_amount: Decimal
     created_at: datetime

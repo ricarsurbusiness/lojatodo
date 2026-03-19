@@ -72,3 +72,29 @@ class OrderRepository:
             .options(selectinload(Order.items))
         )
         return result.scalar_one()
+    
+    async def delete_order(self, order_id: int) -> bool:
+        order = await self.get_order_by_id(order_id)
+        if order:
+            await self.db.delete(order)
+            await self.db.commit()
+            return True
+        return False
+
+    async def list_all_orders(self, page: int, limit: int) -> Tuple[List[Order], int]:
+        offset = (page - 1) * limit
+
+        count_result = await self.db.execute(select(func.count(Order.id)))
+        total = count_result.scalar_one()
+
+        result = await self.db.execute(
+            select(Order)
+            .order_by(Order.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(result.scalars().all()), total
+
+    async def count_all_orders(self) -> int:
+        count_result = await self.db.execute(select(func.count(Order.id)))
+        return count_result.scalar_one()

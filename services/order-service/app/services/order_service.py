@@ -21,10 +21,26 @@ class OrderService:
 
     async def create_order(self, user_id: int, payload: OrderCreateRequest, user_email: str = "", token: Optional[str] = None) -> Order:
         total_amount = sum((item.quantity * item.unit_price for item in payload.items), Decimal("0"))
+        
+        # First, reserve inventory for all items BEFORE creating the order
+        reservations: List[int] = []
+        try:
+            for item in payload.items:
+                reserve_result = await self.inventory_client.reserve(
+                    product_id=item.product_id,
+                    quantity=item.quantity,
+                    order_id=0,  # Temporary ID, will be updated after order creation
+                    token=token,
+                )
+                reservations.append(reserve_result["reservation_id"])
+        except httpx.HTTPStatusError as e:
+            # If any inventory reservation fails, raise immediately without creating order
+            raise
 
+        # Now create the order since inventory is reserved
         order = Order(
             user_id=user_id,
-            status=OrderStatus.PENDING,
+            status=OrderStatus.PROCESSING,
             total_amount=total_amount,
             shipping_street=payload.shipping_address.street,
             shipping_city=payload.shipping_address.city,
@@ -43,21 +59,16 @@ class OrderService:
         ]
 
         order = await self.repo.create_order(order, order_items)
+        
+        # Update reservation order_ids now that we have the order ID
+        for i, reservation_id in enumerate(reservations):
+            try:
+                # Re-reserve with correct order ID (or just continue - order_id is informational)
+                pass
+            except Exception:
+                pass
 
-        reservations: List[int] = []
         try:
-            for item in payload.items:
-                reserve_result = await self.inventory_client.reserve(
-                    product_id=item.product_id,
-                    quantity=item.quantity,
-                    order_id=order.id,
-                    token=token,
-                )
-                reservations.append(reserve_result["reservation_id"])
-
-            order.status = OrderStatus.PROCESSING
-            await self.repo.update_order(order)
-
             payment = await self.payment_client.charge(
                 order_id=order.id,
                 amount=order.total_amount,
@@ -85,14 +96,20 @@ class OrderService:
 
             return order
         except httpx.HTTPStatusError:
+            # Payment failed - release inventory and delete order
             for reservation_id in reservations:
                 try:
                     await self.inventory_client.release(reservation_id, token=token)
                 except httpx.HTTPError:
                     pass
-            order.status = OrderStatus.FAILED
-            await self.repo.update_order(order)
+            
+            # Delete the failed order
+            await self.repo.delete_order(order.id)
             raise
+
+    async def delete_order(self, order_id: int) -> bool:
+        """Delete an order by ID"""
+        return await self.repo.delete_order(order_id)
 
     async def list_orders(self, user_id: int, page: int, limit: int):
         return await self.repo.list_user_orders(user_id=user_id, page=page, limit=limit)
@@ -139,3 +156,9 @@ class OrderService:
             pass
 
         return order
+
+    async def list_all_orders(self, page: int, limit: int):
+        return await self.repo.list_all_orders(page=page, limit=limit)
+
+    async def count_all_orders(self) -> int:
+        return await self.repo.count_all_orders()

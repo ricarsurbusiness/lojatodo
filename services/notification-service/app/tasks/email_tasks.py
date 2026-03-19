@@ -1,9 +1,10 @@
 from datetime import datetime
 from celery import Celery
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 from app.core.config import notification_settings
 from app.services.email_service import email_service
-from app.db.session import AsyncSessionLocal
 from app.models.notification_model import Notification, NotificationStatus
 
 celery_app = Celery(
@@ -20,37 +21,38 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
+# Synchronous database connection for Celery
+engine = create_engine(notification_settings.DATABASE_URL_SYNC)
+SessionLocal = sessionmaker(bind=engine)
+
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def send_email_task(self, notification_id: int):
-    from sqlalchemy import select
+    db = SessionLocal()
+    try:
+        notification = db.query(Notification).filter(Notification.id == notification_id).first()
 
-    async def _send_email():
-        async with AsyncSessionLocal() as db:
-            result = await db.execute(
-                select(Notification).where(Notification.id == notification_id)
-            )
-            notification = result.scalar_one_or_none()
+        if not notification:
+            return
 
-            if not notification:
+        message_id, error = email_service.send_email(
+            to_email=notification.email,
+            subject=notification.subject,
+            body=notification.body,
+        )
+
+        if message_id:
+            notification.status = NotificationStatus.SENT
+            notification.sendgrid_message_id = message_id
+            notification.sent_at = datetime.utcnow()
+            db.commit()
+        else:
+            notification.status = NotificationStatus.FAILED
+            notification.failure_reason = error
+            db.commit()
+            # Don't retry if there's no API key
+            if not notification_settings.SENDGRID_API_KEY:
                 return
-
-            message_id, error = email_service.send_email(
-                to_email=notification.email,
-                subject=notification.subject,
-                body=notification.body,
-            )
-
-            if message_id:
-                notification.status = NotificationStatus.SENT
-                notification.sendgrid_message_id = message_id
-                notification.sent_at = datetime.utcnow()
-            else:
-                notification.status = NotificationStatus.FAILED
-                notification.failure_reason = error
-                raise self.retry(exc=Exception(error))
-
-            await db.commit()
-
-    import asyncio
-    asyncio.run(_send_email())
+            raise self.retry(exc=Exception(error))
+    finally:
+        db.close()

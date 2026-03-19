@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   auth-service:
@@ -296,9 +296,9 @@ services:
       - RABBITMQ_PASSWORD=guest
       - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
       - CELERY_RESULT_BACKEND=rpc://
-      - SENDGRID_API_KEY=
-      - SENDGRID_FROM_EMAIL=noreply@lojatodo.com
-      - SENDGRID_FROM_NAME=LojaTodo
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-noreply@lojatodo.com}
+      - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME:-LojaTodo}
     depends_on:
       postgres-notification:
         condition: service_healthy
@@ -310,6 +310,35 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - lojatodo-network
+
+  celery-worker:
+    build:
+      context: ./services/notification-service
+      dockerfile: Dockerfile
+    container_name: celery-worker
+    command: celery -A celery_app worker --loglevel=info
+    environment:
+      - POSTGRES_HOST=postgres-notification
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=notification_db
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=rpc://
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-noreply@lojatodo.com}
+      - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME:-LojaTodo}
+    depends_on:
+      postgres-notification:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
     networks:
       - lojatodo-network
 

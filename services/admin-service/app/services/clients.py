@@ -70,11 +70,11 @@ class OrderServiceClient(ServiceClient):
             params["start_date"] = start_date
         if end_date:
             params["end_date"] = end_date
-        return await self.get("/api/v1/orders", params)
+        return await self.get("/api/v1/orders/admin/all", params)
     
     async def get_order_count(self) -> int:
         try:
-            data = await self.get("/api/v1/orders/count")
+            data = await self.get("/api/v1/orders/admin/count")
             return data.get("count", 0)
         except:
             return 0
