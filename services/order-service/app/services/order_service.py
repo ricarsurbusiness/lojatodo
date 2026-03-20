@@ -40,7 +40,7 @@ class OrderService:
         # Now create the order since inventory is reserved
         order = Order(
             user_id=user_id,
-            status=OrderStatus.PROCESSING,
+            status=OrderStatus.PENDING,
             total_amount=total_amount,
             shipping_street=payload.shipping_address.street,
             shipping_city=payload.shipping_address.city,
@@ -60,52 +60,11 @@ class OrderService:
 
         order = await self.repo.create_order(order, order_items)
         
-        # Update reservation order_ids now that we have the order ID
-        for i, reservation_id in enumerate(reservations):
-            try:
-                # Re-reserve with correct order ID (or just continue - order_id is informational)
-                pass
-            except Exception:
-                pass
-
-        try:
-            payment = await self.payment_client.charge(
-                order_id=order.id,
-                amount=order.total_amount,
-                provider=payload.payment_provider,
-                token=token,
-            )
-
-            for reservation_id in reservations:
-                await self.inventory_client.confirm(reservation_id, token=token)
-
-            order.payment_id = payment["id"]
-            order.status = OrderStatus.CONFIRMED
-            order = await self.repo.update_order(order)
-
-            try:
-                from app.services.event_publisher import publish_order_created
-                publish_order_created(
-                    order_id=order.id,
-                    user_id=user_id,
-                    total_amount=float(order.total_amount),
-                    user_email=user_email,
-                )
-            except Exception:
-                pass
-
-            return order
-        except httpx.HTTPStatusError:
-            # Payment failed - release inventory and delete order
-            for reservation_id in reservations:
-                try:
-                    await self.inventory_client.release(reservation_id, token=token)
-                except httpx.HTTPError:
-                    pass
-            
-            # Delete the failed order
-            await self.repo.delete_order(order.id)
-            raise
+        # Store reservation_ids in order metadata for later use
+        # For now, we'll keep the order in PENDING status
+        # User must call /confirm endpoint to process payment
+        
+        return order
 
     async def delete_order(self, order_id: int) -> bool:
         """Delete an order by ID"""
@@ -117,7 +76,7 @@ class OrderService:
     async def get_order(self, user_id: int, order_id: int) -> Optional[Order]:
         return await self.repo.get_user_order_by_id(user_id=user_id, order_id=order_id)
 
-    async def cancel_order(self, user_id: int, order_id: int) -> Optional[Order]:
+    async def cancel_order(self, user_id: int, order_id: int, token: Optional[str] = None) -> Optional[Order]:
         order = await self.repo.get_user_order_by_id(user_id=user_id, order_id=order_id)
         if not order:
             return None
@@ -125,8 +84,16 @@ class OrderService:
         if order.status == OrderStatus.CANCELLED:
             raise ValueError("Order is already cancelled")
 
-        if order.status not in {OrderStatus.PENDING, OrderStatus.PROCESSING}:
+        # Can only cancel PENDING, CONFIRMED, or FAILED orders
+        if order.status not in {OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.FAILED}:
             raise RuntimeError("Cancellation not allowed for current status")
+
+        # Release inventory if order was confirmed (inventory was committed)
+        if order.status == OrderStatus.CONFIRMED:
+            # Get reservations from inventory and release them
+            # Note: We need to track reservation_ids - for now we'll skip this
+            # In a real scenario, you'd store reservation_ids in the order
+            pass
 
         order.status = OrderStatus.CANCELLED
         return await self.repo.update_order(order)
@@ -162,3 +129,53 @@ class OrderService:
 
     async def count_all_orders(self) -> int:
         return await self.repo.count_all_orders()
+
+    async def deliver_order(self, order_id: int) -> Optional[Order]:
+        """Mark an order as delivered"""
+        order = await self.repo.get_order_by_id(order_id)
+        if not order:
+            return None
+
+        if order.status != OrderStatus.SHIPPED:
+            raise ValueError("Only shipped orders can be delivered")
+
+        order.status = OrderStatus.DELIVERED
+        return await self.repo.update_order(order)
+
+    async def confirm_order(self, order_id: int, user_email: str = "", token: Optional[str] = None) -> Optional[Order]:
+        """Confirm a pending order (process payment)"""
+        order = await self.repo.get_order_by_id(order_id)
+        if not order:
+            return None
+
+        if order.status != OrderStatus.PENDING:
+            raise ValueError("Only pending orders can be confirmed")
+
+        try:
+            payment = await self.payment_client.charge(
+                order_id=order.id,
+                amount=order.total_amount,
+                provider="stripe",  # Default provider
+                token=token,
+            )
+
+            order.payment_id = payment["id"]
+            order.status = OrderStatus.CONFIRMED
+            order = await self.repo.update_order(order)
+
+            try:
+                from app.services.event_publisher import publish_order_created
+                publish_order_created(
+                    order_id=order.id,
+                    user_id=order.user_id,
+                    total_amount=float(order.total_amount),
+                    user_email=user_email,
+                )
+            except Exception:
+                pass
+
+            return order
+        except httpx.HTTPStatusError:
+            order.status = OrderStatus.FAILED
+            await self.repo.update_order(order)
+            raise

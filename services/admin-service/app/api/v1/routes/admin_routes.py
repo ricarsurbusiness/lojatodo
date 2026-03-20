@@ -103,7 +103,7 @@ async def update_order_status(
     request: UpdateOrderStatusRequest,
     current_user: CurrentUser = Depends(require_admin)
 ):
-    valid_statuses = ["pending", "processing", "shipped", "delivered", "cancelled"]
+    valid_statuses = ["pendiente", "confirmado", "enviado", "entregado", "cancelado"]
     
     if request.status not in valid_statuses:
         raise HTTPException(

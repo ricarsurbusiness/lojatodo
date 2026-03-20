@@ -7,13 +7,12 @@ from app.db.session import Base
 
 
 class OrderStatus(str, enum.Enum):
-    PENDING = "pending"
-    PROCESSING = "processing"
-    CONFIRMED = "confirmed"
-    SHIPPED = "shipped"
-    DELIVERED = "delivered"
-    FAILED = "failed"
-    CANCELLED = "cancelled"
+    PENDING = "pendiente"
+    CONFIRMED = "confirmado"
+    SHIPPED = "enviado"
+    DELIVERED = "entregado"
+    FAILED = "fallido"
+    CANCELLED = "cancelado"
 
 
 class Order(Base):

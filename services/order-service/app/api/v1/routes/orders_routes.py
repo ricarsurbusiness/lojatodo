@@ -1,10 +1,13 @@
 from math import ceil
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 import httpx
 
 from app.core.dependencies import CurrentUser, get_current_user
 from app.db.session import get_db
+from app.models.order_model import OrderStatus
 from app.schemas.order_schema import (
     CancelOrderResponse,
     OrderCreateRequest,
@@ -74,6 +77,41 @@ async def create_order(
     return to_order_detail(order)
 
 
+class ConfirmOrderResponse(BaseModel):
+    id: int
+    status: OrderStatus
+    payment_id: int
+    updated_at: datetime
+
+
+@router.put("/{order_id}/confirm", response_model=ConfirmOrderResponse)
+async def confirm_order(
+    order_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Confirm a pending order (process payment)"""
+    service = OrderService(db)
+
+    try:
+        order = await service.confirm_order(
+            order_id=order_id,
+            user_email=current_user.email,
+            token=current_user.token,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code == 402:
+            raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="Payment failed")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Service coordination failed")
+
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    return ConfirmOrderResponse(id=order.id, status=order.status, payment_id=order.payment_id, updated_at=order.updated_at)
+
+
 @router.get("", response_model=OrderListResponse)
 async def list_orders(
     page: int = Query(1, ge=1),
@@ -124,7 +162,7 @@ async def cancel_order(
     service = OrderService(db)
 
     try:
-        order = await service.cancel_order(current_user.user_id, order_id)
+        order = await service.cancel_order(current_user.user_id, order_id, token=current_user.token)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
     except RuntimeError as exc:
@@ -212,3 +250,31 @@ async def get_order_count_admin(
     service = OrderService(db)
     count = await service.count_all_orders()
     return {"count": count}
+
+
+class DeliverOrderResponse(BaseModel):
+    id: int
+    status: OrderStatus
+    updated_at: datetime
+
+
+@router.put("/{order_id}/deliver", response_model=DeliverOrderResponse)
+async def deliver_order(
+    order_id: int,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    if "admin" not in current_user.roles and "superAdmin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+
+    service = OrderService(db)
+
+    try:
+        order = await service.deliver_order(order_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+
+    return DeliverOrderResponse(id=order.id, status=order.status, updated_at=order.updated_at)
