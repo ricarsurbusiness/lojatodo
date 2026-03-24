@@ -1,0 +1,116 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  # Auth Service
+  - name: auth-service
+    url: http://auth-service:8001
+    routes:
+      - name: auth-register
+        paths:
+          - /api/v1/auth/register
+        strip_path: false
+      - name: auth-login
+        paths:
+          - /api/v1/auth/login
+        strip_path: false
+      - name: auth-refresh
+        paths:
+          - /api/v1/auth/refresh
+        strip_path: false
+      - name: auth-verify
+        paths:
+          - /api/v1/auth/verify
+        strip_path: false
+      - name: auth-me
+        paths:
+          - /api/v1/auth/me
+        strip_path: false
+
+  # Product Service
+  - name: product-service
+    url: http://product-service:8002
+    routes:
+      - name: products-list
+        paths:
+          - /api/v1/products
+        strip_path: false
+      - name: products-detail
+        paths:
+          - /api/v1/products/
+        strip_path: false
+      - name: categories-list
+        paths:
+          - /api/v1/categories
+        strip_path: false
+
+  # Cart Service
+  - name: cart-service
+    url: http://cart-service:8003
+    routes:
+      - name: cart
+        paths:
+          - /api/v1/cart
+        strip_path: false
+
+  # Order Service
+  - name: order-service
+    url: http://order-service:8004
+    routes:
+      - name: orders
+        paths:
+          - /api/v1/orders
+        strip_path: false
+
+  # Inventory Service
+  - name: inventory-service
+    url: http://inventory-service:8005
+    routes:
+      - name: inventory
+        paths:
+          - /api/v1/inventory
+        strip_path: false
+
+  # Payment Service
+  - name: payment-service
+    url: http://payment-service:8006
+    routes:
+      - name: payments
+        paths:
+          - /api/v1/payments
+        strip_path: false
+
+  # Notification Service
+  - name: notification-service
+    url: http://notification-service:8007
+    routes:
+      - name: notifications
+        paths:
+          - /api/v1/notifications
+        strip_path: false
+
+  # Analytics Service
+  - name: analytics-service
+    url: http://analytics-service:8008
+    routes:
+      - name: analytics
+        paths:
+          - /api/v1/analytics
+        strip_path: false
+
+  # Admin Service
+  - name: admin-service
+    url: http://admin-service:8009
+    routes:
+      - name: admin
+        paths:
+          - /api/v1/admin
+        strip_path: false
+
+plugins:
+  # Rate Limiting (100 requests per minute per consumer/IP)
+  - name: rate-limiting
+    config:
+      minute: 100
+      policy: local
+      hide_client_headers: false
