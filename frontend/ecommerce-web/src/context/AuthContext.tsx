@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, ReactNode } from 'react';
 import { User } from '../types';
-import authService, { LoginRequest, RegisterRequest, AuthResponse } from '../services/authService';
+import authService, { LoginRequest, RegisterRequest, AuthResponse, UpdateProfileRequest } from '../services/authService';
 
 interface AuthState {
   user: User | null;
@@ -15,7 +15,8 @@ type AuthAction =
   | { type: 'AUTH_SUCCESS'; payload: { user: User; token: string } }
   | { type: 'AUTH_FAILURE'; payload: string }
   | { type: 'AUTH_LOGOUT' }
-  | { type: 'SET_LOADING'; payload: boolean };
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'UPDATE_PROFILE_SUCCESS'; payload: User };
 
 const initialState: AuthState = {
   user: null,
@@ -58,6 +59,8 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
+    case 'UPDATE_PROFILE_SUCCESS':
+      return { ...state, user: action.payload, isLoading: false };
     default:
       return state;
   }
@@ -67,6 +70,7 @@ interface AuthContextType extends AuthState {
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (data: UpdateProfileRequest) => Promise<void>;
   clearError: () => void;
 }
 
@@ -148,8 +152,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'AUTH_FAILURE', payload: '' });
   };
 
+  const updateProfile = async (data: UpdateProfileRequest) => {
+    dispatch({ type: 'AUTH_START' });
+    try {
+      const response = await authService.updateProfile(data);
+      if (state.user) {
+        dispatch({
+          type: 'UPDATE_PROFILE_SUCCESS',
+          payload: { ...state.user, ...response },
+        });
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Update failed';
+      dispatch({ type: 'AUTH_FAILURE', payload: message });
+      throw error;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ ...state, login, register, logout, clearError }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, updateProfile, clearError }}>
       {children}
     </AuthContext.Provider>
   );

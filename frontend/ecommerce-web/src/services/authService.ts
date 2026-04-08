@@ -31,6 +31,18 @@ export interface VerifyTokenResponse {
   };
 }
 
+export interface UpdateProfileRequest {
+  name: string;
+  email?: string;
+}
+
+export interface UpdateProfileResponse {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+}
+
 export const authService = {
   async login(data: LoginRequest): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/auth/login', data);
@@ -53,6 +65,11 @@ export const authService = {
     } finally {
       localStorage.removeItem('token');
     }
+  },
+
+  async updateProfile(data: UpdateProfileRequest): Promise<UpdateProfileResponse> {
+    const response = await api.put<UpdateProfileResponse>('/auth/profile', data);
+    return response.data;
   },
 };
 
