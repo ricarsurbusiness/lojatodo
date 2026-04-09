@@ -66,6 +66,10 @@ export const adminService = {
   async updateOrderStatus(orderId: string, status: string): Promise<void> {
     await api.put(`/admin/orders/${orderId}/status`, { status });
   },
+
+  async updateUserRole(userId: string, role: string): Promise<void> {
+    await api.put(`/admin/users/${userId}/role`, { role });
+  },
 };
 
 export default adminService;

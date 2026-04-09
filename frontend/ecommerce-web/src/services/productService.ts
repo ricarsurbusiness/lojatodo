@@ -48,6 +48,34 @@ export const productService = {
     const response = await api.get<Category>(`/products/categories/${id}`);
     return response.data;
   },
+
+  async createProduct(data: {
+    name: string;
+    description: string;
+    price: number;
+    image: string;
+    categoryId: string;
+    stock: number;
+  }): Promise<Product> {
+    const response = await api.post<Product>('/products', data);
+    return response.data;
+  },
+
+  async updateProduct(id: string, data: {
+    name?: string;
+    description?: string;
+    price?: number;
+    image?: string;
+    categoryId?: string;
+    stock?: number;
+  }): Promise<Product> {
+    const response = await api.put<Product>(`/products/${id}`, data);
+    return response.data;
+  },
+
+  async deleteProduct(id: string): Promise<void> {
+    await api.delete(`/products/${id}`);
+  },
 };
 
 export default productService;

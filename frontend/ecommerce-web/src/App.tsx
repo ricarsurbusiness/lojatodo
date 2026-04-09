@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { OrderProvider } from './context/OrderContext'
 import { Layout } from './components/layout/Layout'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ProfilePage from './pages/auth/ProfilePage'
@@ -13,6 +14,14 @@ import CartPage from './pages/cart/CartPage'
 import CheckoutPage from './pages/checkout/CheckoutPage'
 import OrderHistoryPage from './pages/orders/OrderHistoryPage'
 import OrderDetailPage from './pages/orders/OrderDetailPage'
+import DashboardPage from './pages/admin/DashboardPage'
+import ProductsPage from './pages/admin/ProductsPage'
+import AdminOrdersPage from './pages/admin/AdminOrdersPage'
+import UsersPage from './pages/admin/UsersPage'
+
+const AdminLayout: React.FC = () => {
+  return <Outlet />;
+};
 
 function App() {
   return (
@@ -32,6 +41,14 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
+                <Route element={<ProtectedRoute requiredRole="admin" />}>
+                  <Route element={<AdminLayout />}>
+                    <Route path="/admin" element={<DashboardPage />} />
+                    <Route path="/admin/products" element={<ProductsPage />} />
+                    <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                    <Route path="/admin/users" element={<UsersPage />} />
+                  </Route>
+                </Route>
               </Routes>
             </Layout>
           </OrderProvider>
