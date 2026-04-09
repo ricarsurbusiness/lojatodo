@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { CartDrawer } from '../cart/CartDrawer';
 
 export const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
-  const { getItemCount } = useCart();
+  const { cart, getItemCount, updateItem, removeItem } = useCart();
   const navigate = useNavigate();
   const itemCount = getItemCount();
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -41,8 +43,8 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-4">
-            <Link
-              to="/cart"
+            <button
+              onClick={() => setIsCartOpen(true)}
               className="relative text-gray-700 hover:text-blue-600 p-2"
             >
               <svg
@@ -64,7 +66,7 @@ export const Header: React.FC = () => {
                   {itemCount}
                 </span>
               )}
-            </Link>
+            </button>
 
             {isAuthenticated ? (
               <div className="relative group">
@@ -126,6 +128,15 @@ export const Header: React.FC = () => {
           </div>
         </div>
       </div>
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cart?.items || []}
+        total={cart?.total ?? 0}
+        onUpdateQuantity={(productId, quantity) => updateItem(productId, { quantity })}
+        onRemove={removeItem}
+        onCheckout={() => { setIsCartOpen(false); navigate('/cart'); }}
+      />
     </header>
   );
 };
