@@ -27,17 +27,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         </Link>
         <p className="mt-1 text-sm text-gray-500 line-clamp-2">{product.description}</p>
         <div className="mt-4 flex items-center justify-between">
-          <p className="text-xl font-bold text-gray-900">${product.price.toFixed(2)}</p>
-          <span className={`text-sm ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+          <p className="text-xl font-bold text-gray-900">${typeof product.price === 'string' ? product.price : product.price.toFixed(2)}</p>
+          <span className={`text-sm ${(product.stock || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+            {(product.stock || 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}
           </span>
         </div>
         <div className="mt-4">
           <Button
-            variant={product.stock > 0 ? 'primary' : 'outline'}
+            variant={(product.stock || 0) > 0 ? 'primary' : 'outline'}
             size="sm"
             className="w-full"
-            disabled={product.stock <= 0}
+            disabled={(product.stock || 0) <= 0}
           >
             {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
           </Button>
