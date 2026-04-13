@@ -1,19 +1,20 @@
 import api from './api';
 
 export interface Product {
-  id: string;
+  id: number;
   name: string;
-  description: string;
-  price: number;
-  image: string;
-  categoryId: string;
-  stock: number;
+  description: string | null;
+  price: string;
+  image: string | null;
+  category_id: number | null;
+  stock: number | null;
+  created_at: string;
 }
 
 export interface Category {
-  id: string;
+  id: number;
   name: string;
-  description: string;
+  description: string | null;
 }
 
 export interface GetProductsResponse {
@@ -30,17 +31,19 @@ export const productService = {
     category?: string;
     search?: string;
   }): Promise<GetProductsResponse> {
-    const response = await api.get<GetProductsResponse>('/api/v1/products', { params });
-    return response.data;
+    const response = await api.get<Product[]>('/api/v1/products', { params });
+    const products = response.data;
+    // API returns array directly, transform to expected format
+    return {
+      products,
+      total: products.length,
+      page: params?.page || 1,
+      limit: params?.limit || products.length
+    };
   },
 
   async getProduct(id: string): Promise<Product> {
     const response = await api.get<Product>(`/api/v1/products/${id}`);
-    return response.data;
-  },
-
-  async getCategories(): Promise<Category[]> {
-    const response = await api.get<Category[]>('/api/v1/categories');
     return response.data;
   },
 
@@ -62,7 +65,7 @@ export const productService = {
     categoryId: string;
     stock: number;
   }): Promise<Product> {
-    const response = await api.post<Product>('/products', data);
+    const response = await api.post<Product>('/api/v1/products', data);
     return response.data;
   },
 
