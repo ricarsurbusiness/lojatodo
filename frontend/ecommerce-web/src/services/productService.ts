@@ -30,22 +30,27 @@ export const productService = {
     category?: string;
     search?: string;
   }): Promise<GetProductsResponse> {
-    const response = await api.get<GetProductsResponse>('/products', { params });
+    const response = await api.get<GetProductsResponse>('/api/v1/products', { params });
     return response.data;
   },
 
   async getProduct(id: string): Promise<Product> {
-    const response = await api.get<Product>(`/products/${id}`);
+    const response = await api.get<Product>(`/api/v1/products/${id}`);
     return response.data;
   },
 
   async getCategories(): Promise<Category[]> {
-    const response = await api.get<Category[]>('/products/categories');
+    const response = await api.get<Category[]>('/api/v1/categories');
+    return response.data;
+  },
+
+  async getCategories(): Promise<Category[]> {
+    const response = await api.get<Category[]>('/api/v1/categories');
     return response.data;
   },
 
   async getCategory(id: string): Promise<Category> {
-    const response = await api.get<Category>(`/products/categories/${id}`);
+    const response = await api.get<Category>(`/api/v1/categories/${id}`);
     return response.data;
   },
 
@@ -69,12 +74,12 @@ export const productService = {
     categoryId?: string;
     stock?: number;
   }): Promise<Product> {
-    const response = await api.put<Product>(`/products/${id}`, data);
+    const response = await api.put<Product>(`/api/v1/products/${id}`, data);
     return response.data;
   },
 
   async deleteProduct(id: string): Promise<void> {
-    await api.delete(`/products/${id}`);
+    await api.delete(`/api/v1/products/${id}`);
   },
 };
 

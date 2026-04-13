@@ -57,12 +57,12 @@ export const orderService = {
   },
 
   async getOrder(id: string): Promise<Order> {
-    const response = await api.get<Order>(`/orders/${id}`);
+    const response = await api.get<Order>(`/api/v1/orders/${id}`);
     return response.data;
   },
 
   async cancelOrder(id: string): Promise<Order> {
-    const response = await api.post<Order>(`/orders/${id}/cancel`);
+    const response = await api.post<Order>(`/api/v1/orders/${id}/cancel`);
     return response.data;
   },
 };

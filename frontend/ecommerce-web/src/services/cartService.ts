@@ -33,17 +33,17 @@ export const cartService = {
   },
 
   async addItem(data: AddToCartRequest): Promise<Cart> {
-    const response = await api.post<Cart>('/cart/items', data);
+    const response = await api.post<Cart>('/api/v1/cart/items', data);
     return response.data;
   },
 
   async updateItem(productId: string, data: UpdateCartItemRequest): Promise<Cart> {
-    const response = await api.put<Cart>(`/cart/items/${productId}`, data);
+    const response = await api.put<Cart>(`/api/v1/cart/items/${productId}`, data);
     return response.data;
   },
 
   async removeItem(productId: string): Promise<Cart> {
-    const response = await api.delete<Cart>(`/cart/items/${productId}`);
+    const response = await api.delete<Cart>(`/api/v1/cart/items/${productId}`);
     return response.data;
   },
 

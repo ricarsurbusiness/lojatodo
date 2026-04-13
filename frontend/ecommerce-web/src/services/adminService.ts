@@ -30,7 +30,7 @@ export interface UsersResponse {
 
 export const adminService = {
   async getDashboardStats(): Promise<DashboardStats> {
-    const response = await api.get<DashboardStats>('/admin/dashboard');
+    const response = await api.get<DashboardStats>('/api/v1/admin/dashboard');
     return response.data;
   },
 
@@ -39,7 +39,7 @@ export const adminService = {
     limit?: number;
     role?: string;
   }): Promise<UsersResponse> {
-    const response = await api.get<UsersResponse>('/admin/users', { params });
+    const response = await api.get<UsersResponse>('/api/v1/admin/users', { params });
     return response.data;
   },
 
@@ -59,16 +59,16 @@ export const adminService = {
     page: number;
     limit: number;
   }> {
-    const response = await api.get('/admin/orders', { params });
+    const response = await api.get('/api/v1/admin/orders', { params });
     return response.data;
   },
 
   async updateOrderStatus(orderId: string, status: string): Promise<void> {
-    await api.put(`/admin/orders/${orderId}/status`, { status });
+    await api.put(`/api/v1/admin/orders/${orderId}/status`, { status });
   },
 
   async updateUserRole(userId: string, role: string): Promise<void> {
-    await api.put(`/admin/users/${userId}/role`, { role });
+    await api.put(`/api/v1/admin/users/${userId}/role`, { role });
   },
 };
 
