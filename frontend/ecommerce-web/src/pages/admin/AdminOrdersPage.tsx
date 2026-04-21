@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import adminService from '../../services/adminService';
+import orderService from '../../services/orderService';
 
 interface Order {
   id: string;
@@ -11,14 +12,17 @@ interface Order {
 }
 
 const statusColors: Record<string, string> = {
-  pending: 'bg-yellow-100 text-yellow-800',
-  processing: 'bg-blue-100 text-blue-800',
-  shipped: 'bg-purple-100 text-purple-800',
-  delivered: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-800',
+  pendiente: 'bg-yellow-100 text-yellow-800',
+  confirmado: 'bg-blue-100 text-blue-800',
+  procesamiento: 'bg-blue-100 text-blue-800',
+  enviado: 'bg-purple-100 text-purple-800',
+  entregado: 'bg-green-100 text-green-800',
+  cancelado: 'bg-red-100 text-red-800',
+  fallido: 'bg-red-100 text-red-800',
 };
 
-const statusOptions = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+// Spanish status options from backend
+const statusOptions = ['pendiente', 'confirmado', 'procesamiento', 'enviado', 'entregado', 'cancelado', 'fallido'];
 
 export const AdminOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -49,6 +53,74 @@ export const AdminOrdersPage: React.FC = () => {
       setOrders(orders.map((o) => (o.id === orderId ? { ...o, status } : o)));
     } catch (error) {
       console.error('Failed to update order status:', error);
+    }
+  };
+
+  const handleConfirmOrder = async (orderId: string) => {
+    try {
+      const updated = await orderService.confirmOrder(orderId);
+      setOrders(orders.map((o) => (o.id === orderId ? { ...o, status: updated.status } : o)));
+    } catch (error) {
+      console.error('Failed to confirm order:', error);
+    }
+  };
+
+  const handleShipOrder = async (orderId: string) => {
+    try {
+      const updated = await orderService.shipOrder(orderId);
+      setOrders(orders.map((o) => (o.id === orderId ? { ...o, status: updated.status } : o)));
+    } catch (error) {
+      console.error('Failed to ship order:', error);
+    }
+  };
+
+  const handleDeliverOrder = async (orderId: string) => {
+    try {
+      const updated = await orderService.deliverOrder(orderId);
+      setOrders(orders.map((o) => (o.id === orderId ? { ...o, status: updated.status } : o)));
+    } catch (error) {
+      console.error('Failed to deliver order:', error);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    try {
+      const updated = await orderService.cancelOrder(orderId);
+      setOrders(orders.map((o) => (o.id === orderId ? { ...o, status: updated.status } : o)));
+    } catch (error) {
+      console.error('Failed to cancel order:', error);
+    }
+  };
+
+  const getActionsForStatus = (status: string): { label: string; handler: (id: string) => Promise<void>; action: string }[] => {
+    // Handle Spanish status names
+    switch (status) {
+      case 'pendiente': // pending
+        return [
+          { label: 'Confirm', handler: handleConfirmOrder, action: 'confirm' },
+          { label: 'Cancel', handler: handleCancelOrder, action: 'cancel' },
+        ];
+      case 'confirmado': // confirmed
+        return [
+          { label: 'Ship', handler: handleShipOrder, action: 'ship' },
+          { label: 'Cancel', handler: handleCancelOrder, action: 'cancel' },
+        ];
+      case 'enviado': // shipped
+        return [
+          { label: 'Deliver', handler: handleDeliverOrder, action: 'deliver' },
+        ];
+      case 'procesamiento': // processing
+        return [
+          { label: 'Ship', handler: handleShipOrder, action: 'ship' },
+        ];
+      case 'entregado': // delivered - no actions
+        return [];
+      case 'cancelado': // cancelled - no actions
+        return [];
+      case 'fallido': // failed - no actions
+        return [];
+      default:
+        return [];
     }
   };
 
@@ -102,9 +174,28 @@ export const AdminOrdersPage: React.FC = () => {
                     </select>
                   </td>
                   <td className="py-3 px-4 text-right">
-                    <Link to={`/orders/${order.id}`} className="text-blue-600 hover:text-blue-800">
-                      View
-                    </Link>
+                    <div className="flex justify-end gap-2">
+                      {getActionsForStatus(order.status).map((action) => (
+                        <button
+                          key={action.action}
+                          onClick={() => action.handler(order.id)}
+                          className={`px-2 py-1 text-xs rounded ${
+                            action.action === 'cancel'
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                              : action.action === 'confirm'
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : action.action === 'ship'
+                              ? 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                          }`}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                      <Link to={`/orders/${order.id}`} className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200">
+                        View
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

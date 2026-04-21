@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useOrder } from '../../context/OrderContext';
 import { useAuth } from '../../context/AuthContext';
 import { OrderStatus } from '../../types/order';
+import productService from '../../services/productService';
 import { Loader } from '../../components/common/Loader';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent, CardHeader } from '../../components/common/Card';
@@ -33,19 +34,43 @@ export const OrderDetailPage: React.FC = () => {
   const { currentOrder: order, isLoading, error, fetchOrder, cancelOrder, clearCurrentOrder } = useOrder();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [productNames, setProductNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/orders/${id}` } });
       return;
     }
-    if (id) {
+    
+    if (id && !order) {
       fetchOrder(id);
     }
+    
     return () => {
       clearCurrentOrder();
     };
-  }, [isAuthenticated, navigate, id, fetchOrder, clearCurrentOrder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isAuthenticated]);
+
+  // Fetch product names when order is loaded
+  useEffect(() => {
+    const fetchProductNames = async () => {
+      if (!order?.items) return;
+      
+      const names: Record<string, string> = {};
+      for (const item of order.items) {
+        try {
+          const product = await productService.getProduct(item.productId);
+          names[item.productId] = product.name;
+        } catch {
+          names[item.productId] = `Product #${item.productId}`;
+        }
+      }
+      setProductNames(names);
+    };
+    
+    fetchProductNames();
+  }, [order]);
 
   const handleCancelOrder = async () => {
     if (!id) return;
@@ -139,14 +164,22 @@ export const OrderDetailPage: React.FC = () => {
                 <div className="divide-y divide-gray-200">
                   {order.items.map((item, index) => (
                     <div key={index} className="py-4 first:pt-0 last:pb-0">
-                      <div className="flex justify-between items-start">
+                      <div className="flex gap-4">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.productName}</p>
-                          <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                          <p className="font-medium text-gray-900">
+                            {productNames[item.productId] || `Product #${item.productId}`}
+                          </p>
+                          <p className="text-sm text-gray-500 mt-1">Quantity: {item.quantity}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-medium text-gray-900">${(item.price * item.quantity).toFixed(2)}</p>
-                          <p className="text-sm text-gray-500">${item.price.toFixed(2)} each</p>
+                          <p className="font-medium text-gray-900">
+                            ${typeof item.price === 'string' 
+                              ? (parseFloat(item.price) * item.quantity).toFixed(2)
+                              : (item.price * item.quantity).toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            ${typeof item.price === 'string' ? item.price : item.price.toFixed(2)} each
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -158,11 +191,9 @@ export const OrderDetailPage: React.FC = () => {
             <Card variant="bordered" padding="lg">
               <CardHeader className="text-lg mb-4">Shipping Address</CardHeader>
               <CardContent>
-                <div className="text-gray-600">
+                <div className="space-y-1 text-gray-600">
                   <p className="font-medium text-gray-900">{order.shippingAddress.street}</p>
-                  <p>
-                    {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-                  </p>
+                  <p>{order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}</p>
                   <p>{order.shippingAddress.country}</p>
                 </div>
               </CardContent>

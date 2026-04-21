@@ -9,6 +9,7 @@ class ProductCreate(BaseModel):
     description: Optional[str] = None
     price: Decimal = Field(..., gt=0)
     category_id: Optional[int] = None
+    stock: int = Field(default=0, ge=0)  # Initial stock quantity
 
 
 class ProductUpdate(BaseModel):
@@ -16,6 +17,7 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = None
     price: Optional[Decimal] = Field(None, gt=0)
     category_id: Optional[int] = None
+    stock: Optional[int] = Field(None, ge=0)  # Update stock quantity
 
 
 class ProductResponse(BaseModel):

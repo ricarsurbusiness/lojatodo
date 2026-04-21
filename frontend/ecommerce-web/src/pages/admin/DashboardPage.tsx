@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import adminService, { DashboardStats } from '../../services/adminService';
+import { useAuth } from '../../context/AuthContext';
 
 export const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const isSuperAdmin = user?.roles?.includes('superAdmin');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -125,12 +128,21 @@ export const DashboardPage: React.FC = () => {
             <h3 className="font-semibold text-lg mb-2">Orders</h3>
             <p className="text-gray-500 text-sm">View and manage orders</p>
           </Link>
+          {isSuperAdmin && (
+            <Link
+              to="/admin/users"
+              className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <h3 className="font-semibold text-lg mb-2">Users</h3>
+              <p className="text-gray-500 text-sm">Manage user accounts</p>
+            </Link>
+          )}
           <Link
-            to="/admin/users"
+            to="/admin/analytics"
             className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
           >
-            <h3 className="font-semibold text-lg mb-2">Users</h3>
-            <p className="text-gray-500 text-sm">Manage user accounts</p>
+            <h3 className="font-semibold text-lg mb-2">Analytics</h3>
+            <p className="text-gray-500 text-sm">View sales and performance analytics</p>
           </Link>
         </div>
       </div>

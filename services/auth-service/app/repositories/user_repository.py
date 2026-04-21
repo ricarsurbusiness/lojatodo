@@ -97,6 +97,14 @@ class UserRepository:
             await self.db.refresh(user)
         return user
     
+    async def remove_role(self, user: User, role_name: str) -> User:
+        role = await self._get_role_by_name(role_name)
+        if role and role in user.roles:
+            user.roles.remove(role)
+            await self.db.commit()
+            await self.db.refresh(user)
+        return user
+    
     async def authenticate(self, email: str, password: str) -> Optional[User]:
         user = await self.get_by_email(email)
         if not user:

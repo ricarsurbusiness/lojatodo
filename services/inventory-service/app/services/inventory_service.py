@@ -23,6 +23,16 @@ class InventoryService:
             return await self.inventory_repo.update_inventory(existing)
         return await self.inventory_repo.create_inventory(product_id, quantity)
     
+    async def update_inventory(self, product_id: int, quantity: int) -> Optional[Inventory]:
+        """Update inventory quantity - replaces the quantity, not adds to it"""
+        existing = await self.inventory_repo.get_inventory_by_product_id(product_id)
+        if not existing:
+            # Create new inventory if doesn't exist
+            return await self.inventory_repo.create_inventory(product_id, quantity)
+        
+        existing.quantity = quantity
+        return await self.inventory_repo.update_inventory(existing)
+    
     async def update_inventory_quantity(self, product_id: int, quantity: int) -> Optional[Inventory]:
         inventory = await self.inventory_repo.get_inventory_by_product_id(product_id)
         if not inventory:

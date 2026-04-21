@@ -6,8 +6,23 @@ interface User {
   email: string;
   name: string;
   role: string;
+  roles: string[];
   createdAt: string;
 }
+
+const ALL_ROLES = ['cliente', 'admin', 'superAdmin'];
+
+const roleColors: Record<string, string> = {
+  cliente: 'bg-blue-100 text-blue-800',
+  admin: 'bg-purple-100 text-purple-800',
+  superAdmin: 'bg-red-100 text-red-800',
+};
+
+const roleLabels: Record<string, string> = {
+  cliente: 'Cliente',
+  admin: 'Admin',
+  superAdmin: 'Super Admin',
+};
 
 export const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -37,13 +52,41 @@ export const UsersPage: React.FC = () => {
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
+  const handleAddRole = async (userId: string, roleToAdd: string) => {
     try {
-      await adminService.updateUserRole(userId, newRole);
-      setUsers(users.map((u) => (u.id === userId ? { ...u, role: newRole } : u)));
+      await adminService.addUserRole(userId, roleToAdd);
+      setUsers(users.map((u) => 
+        u.id === userId 
+          ? { ...u, roles: [...u.roles, roleToAdd], role: roleToAdd } 
+          : u
+      ));
     } catch (error) {
-      console.error('Failed to update user role:', error);
+      console.error('Failed to add role:', error);
     }
+  };
+
+  const handleRemoveRole = async (userId: string, roleToRemove: string) => {
+    try {
+      await adminService.removeUserRole(userId, roleToRemove);
+      const updatedUsers = users.map((u) => {
+        if (u.id === userId) {
+          const newRoles = u.roles.filter(r => r !== roleToRemove);
+          return { 
+            ...u, 
+            roles: newRoles,
+            role: newRoles[0] || 'cliente'
+          };
+        }
+        return u;
+      });
+      setUsers(updatedUsers);
+    } catch (error) {
+      console.error('Failed to remove role:', error);
+    }
+  };
+
+  const getAvailableRoles = (userRoles: string[]) => {
+    return ALL_ROLES.filter(role => !userRoles.includes(role));
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -67,8 +110,8 @@ export const UsersPage: React.FC = () => {
             className="px-3 py-2 border rounded-lg"
           >
             <option value="">All Roles</option>
-            <option value="customer">Customer</option>
-            <option value="admin">Admin</option>
+            <option value="cliente">Clientes</option>
+            <option value="admin">Admins</option>
           </select>
         </div>
 
@@ -78,7 +121,7 @@ export const UsersPage: React.FC = () => {
               <tr>
                 <th className="text-left py-3 px-4">Name</th>
                 <th className="text-left py-3 px-4">Email</th>
-                <th className="text-left py-3 px-4">Role</th>
+                <th className="text-left py-3 px-4">Roles</th>
                 <th className="text-left py-3 px-4">Joined</th>
                 <th className="text-right py-3 px-4">Actions</th>
               </tr>
@@ -86,29 +129,45 @@ export const UsersPage: React.FC = () => {
             <tbody>
               {users.map((user) => (
                 <tr key={user.id} className="border-t hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium">{user.name}</td>
+                  <td className="py-3 px-4 font-medium">{user.name || '-'}</td>
                   <td className="py-3 px-4">{user.email}</td>
                   <td className="py-3 px-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === 'admin'
-                          ? 'bg-purple-100 text-purple-800'
-                          : 'bg-blue-100 text-blue-800'
-                      }`}
-                    >
-                      {user.role}
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {user.roles.map((role) => (
+                        <span
+                          key={role}
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors[role] || 'bg-gray-100 text-gray-800'}`}
+                        >
+                          {roleLabels[role] || role}
+                          {user.roles.length > 1 && (
+                            <button
+                              onClick={() => handleRemoveRole(user.id, role)}
+                              className="ml-1 text-red-600 hover:text-red-800"
+                              title={`Remove ${roleLabels[role] || role}`}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td className="py-3 px-4">{new Date(user.createdAt).toLocaleDateString()}</td>
                   <td className="py-3 px-4 text-right">
-                    <select
-                      value={user.role}
-                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      className="text-sm border rounded px-2 py-1"
-                    >
-                      <option value="customer">Customer</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                    {getAvailableRoles(user.roles).length > 0 && (
+                      <div className="flex gap-1 justify-end">
+                        {getAvailableRoles(user.roles).map((role) => (
+                          <button
+                            key={role}
+                            onClick={() => handleAddRole(user.id, role)}
+                            className={`px-2 py-1 text-xs rounded border ${roleColors[role]} hover:opacity-80`}
+                            title={`Add ${roleLabels[role] || role}`}
+                          >
+                            +{roleLabels[role] || role}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

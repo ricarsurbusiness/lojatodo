@@ -3,6 +3,7 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  roles?: string[]; // Array of roles from backend like ["admin", "cliente"]
 }
 
 export interface LoginCredentials {

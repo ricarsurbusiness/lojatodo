@@ -5,10 +5,34 @@ import { useAuth } from '../../context/AuthContext';
 import { useOrder } from '../../context/OrderContext';
 import { ShippingAddress } from '../../types/order';
 import { Input } from '../../components/common/Input';
+import { Select } from '../../components/common/Select';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent, CardHeader, CardFooter } from '../../components/common/Card';
 import { Alert } from '../../components/common/Alert';
 import { Loader } from '../../components/common/Loader';
+
+const COUNTRIES = [
+  { value: 'United States', label: 'United States' },
+  { value: 'Canada', label: 'Canada' },
+  { value: 'United Kingdom', label: 'United Kingdom' },
+  { value: 'Germany', label: 'Germany' },
+  { value: 'France', label: 'France' },
+  { value: 'Spain', label: 'Spain' },
+  { value: 'Italy', label: 'Italy' },
+  { value: 'Mexico', label: 'Mexico' },
+  { value: 'Colombia', label: 'Colombia' },
+  { value: 'Argentina', label: 'Argentina' },
+  { value: 'Brazil', label: 'Brazil' },
+  { value: 'Chile', label: 'Chile' },
+  { value: 'Peru', label: 'Peru' },
+  { value: 'Venezuela', label: 'Venezuela' },
+  { value: 'Ecuador', label: 'Ecuador' },
+  { value: 'Guatemala', label: 'Guatemala' },
+  { value: 'Costa Rica', label: 'Costa Rica' },
+  { value: 'Panama', label: 'Panama' },
+  { value: 'Dominican Republic', label: 'Dominican Republic' },
+  { value: 'Other', label: 'Other' },
+];
 
 const PaymentMethod: React.FC<{ selected: string; onChange: (method: string) => void }> = ({ selected, onChange }) => {
   const methods = [
@@ -70,10 +94,11 @@ export const CheckoutPage: React.FC = () => {
   const [orderId, setOrderId] = useState('');
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Only redirect to login if not authenticated AND order not successful
+    if (!isAuthenticated && !orderSuccess) {
       navigate('/login', { state: { from: '/checkout' } });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, orderSuccess]);
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -102,13 +127,20 @@ export const CheckoutPage: React.FC = () => {
     if (!validateForm() || !cart) return;
 
     try {
+      // Pass cart items with prices to createOrder
+      const cartItems = cart.items.map((item) => ({
+        productId: item.productId,
+        price: item.price,
+      }));
+      
       const order = await createOrder({
         items: cart.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,
         })),
         shippingAddress,
-      });
+      }, cartItems);
+      
       setOrderId(order.id);
       setOrderSuccess(true);
     } catch {
@@ -124,20 +156,7 @@ export const CheckoutPage: React.FC = () => {
     );
   }
 
-  if (!cart || cart.items.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md mx-auto text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
-          <p className="text-gray-600 mb-6">Add some products before checking out.</p>
-          <Button onClick={() => navigate('/products')} variant="primary">
-            Continue Shopping
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
+  // Show success screen first, even if cart was cleared after order
   if (orderSuccess) {
     return (
       <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -158,6 +177,20 @@ export const CheckoutPage: React.FC = () => {
               Continue Shopping
             </Button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cart || cart.items.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md mx-auto text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
+          <p className="text-gray-600 mb-6">Add some products before checking out.</p>
+          <Button onClick={() => navigate('/products')} variant="primary">
+            Continue Shopping
+          </Button>
         </div>
       </div>
     );
@@ -218,12 +251,12 @@ export const CheckoutPage: React.FC = () => {
                     placeholder="10001"
                     required
                   />
-                  <Input
+                  <Select
                     label="Country"
+                    options={COUNTRIES}
                     value={shippingAddress.country}
                     onChange={(e) => handleAddressChange('country', e.target.value)}
                     error={formErrors.country}
-                    placeholder="United States"
                     required
                   />
                 </div>

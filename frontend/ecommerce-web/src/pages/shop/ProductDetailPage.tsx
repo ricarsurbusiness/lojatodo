@@ -126,7 +126,7 @@ export const ProductDetailPage: React.FC = () => {
               )}
               
               <p className="text-3xl font-bold text-gray-900 mt-4">
-                ${product.price.toFixed(2)}
+                ${typeof product.price === 'string' ? product.price : product.price.toFixed(2)}
               </p>
               
               <div className="mt-2">

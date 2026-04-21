@@ -93,7 +93,7 @@ export const Header: React.FC = () => {
                   >
                     Profile
                   </Link>
-                  {user?.role === 'admin' && (
+                  {(user?.role === 'admin' || user?.roles?.includes('admin')) && (
                     <Link
                       to="/admin"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

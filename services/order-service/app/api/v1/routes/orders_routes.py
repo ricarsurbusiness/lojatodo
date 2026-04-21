@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 import httpx
 
 from app.core.dependencies import CurrentUser, get_current_user
@@ -147,7 +148,11 @@ async def get_order(
     db: AsyncSession = Depends(get_db),
 ):
     service = OrderService(db)
-    order = await service.get_order(current_user.user_id, order_id)
+    # Allow admins to view any order
+    if "admin" in current_user.roles or "superAdmin" in current_user.roles:
+        order = await service.get_order_admin(order_id)
+    else:
+        order = await service.get_order(current_user.user_id, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
     return to_order_detail(order)
@@ -278,3 +283,52 @@ async def deliver_order(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
 
     return DeliverOrderResponse(id=order.id, status=order.status, updated_at=order.updated_at)
+
+
+class UpdateStatusRequest(BaseModel):
+    status: str
+
+
+class UpdateStatusResponse(BaseModel):
+    id: int
+    status: str
+    updated_at: datetime
+
+
+@router.put("/{order_id}/status", response_model=UpdateStatusResponse)
+async def update_order_status(
+    order_id: int,
+    request: UpdateStatusRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    # Only admins can update status directly
+    if "admin" not in current_user.roles and "superAdmin" not in current_user.roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin role required")
+    
+    service = OrderService(db)
+    order = await service.get_order_admin(order_id)
+    
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
+    
+    # Map status string to OrderStatus enum
+    status_map = {
+        'pendiente': OrderStatus.PENDING,
+        'confirmado': OrderStatus.CONFIRMED,
+        'enviado': OrderStatus.SHIPPED,
+        'entregado': OrderStatus.DELIVERED,
+        'cancelado': OrderStatus.CANCELLED,
+        'fallido': OrderStatus.FAILED,
+    }
+    
+    new_status = status_map.get(request.status.lower(), OrderStatus.PENDING)
+    order.status = new_status
+    
+    updated_order = await service.repo.update_order(order)
+    
+    return UpdateStatusResponse(
+        id=updated_order.id,
+        status=request.status,
+        updated_at=updated_order.updated_at
+    )

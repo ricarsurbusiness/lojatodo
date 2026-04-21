@@ -49,6 +49,9 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
+  
+  // Track last add time to prevent duplicates
+  const lastAddTime = React.useRef<number>(0);
 
   const fetchCart = async () => {
     dispatch({ type: 'CART_LOADING' });
@@ -62,6 +65,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addItem = async (data: AddToCartRequest) => {
+    // Prevent duplicate requests within 1 second
+    const now = Date.now();
+    if (now - lastAddTime.current < 1000) {
+      return;
+    }
+    lastAddTime.current = now;
+    
     dispatch({ type: 'CART_LOADING' });
     try {
       const cart = await cartService.addItem(data);

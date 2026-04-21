@@ -102,3 +102,46 @@ async def assign_role(
         roles=[role.name for role in user.roles],
         created_at=user.created_at
     )
+
+
+@router.post("/remove-role", response_model=UserResponse)
+async def remove_role(
+    request: AssignRoleRequest,
+    current_user: CurrentUser = Depends(require_role(["admin", "superAdmin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    user_service = UserService(db)
+    try:
+        user = await user_service.remove_role(request.user_id, request.role, current_user)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        roles=[role.name for role in user.roles],
+        created_at=user.created_at
+    )
+
+
+@router.delete("/users/{user_id}/roles/{role_name}")
+async def remove_role(
+    user_id: int,
+    role_name: str,
+    current_user: CurrentUser = Depends(require_role(["admin", "superAdmin"])),
+    db: AsyncSession = Depends(get_db)
+):
+    user_service = UserService(db)
+    try:
+        user = await user_service.remove_role(user_id, role_name, current_user)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+        roles=[role.name for role in user.roles],
+        created_at=user.created_at
+    )

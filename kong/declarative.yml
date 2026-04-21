@@ -5,6 +5,33 @@
 _format_version: "3.0"
 _transform: true
 
+# CORS plugin configuration
+plugins:
+- name: cors
+  config:
+    origins:
+      - "http://localhost:3000"
+      - "http://127.0.0.1:3000"
+    methods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+    headers:
+      - Accept
+      - Accept-Language
+      - Content-Type
+      - Authorization
+      - X-Requested-With
+      - X-Kong-Admin-Token
+    exposed_headers:
+      - X-Total-Count
+      - X-Page-Count
+    credentials: true
+    max_age: 3600
+
 # Services and routes are configured via Kong Admin API:
 # - GET /services
 # - POST /services/{name}/routes

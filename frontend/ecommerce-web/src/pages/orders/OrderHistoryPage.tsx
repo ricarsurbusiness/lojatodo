@@ -8,7 +8,7 @@ import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
 
 export const OrderHistoryPage: React.FC = () => {
-  const { orders, isLoading, error, fetchOrders, total, page, limit } = useOrder();
+  const { orders, isLoading, error, fetchOrders, total, limit } = useOrder();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -18,16 +18,19 @@ export const OrderHistoryPage: React.FC = () => {
       navigate('/login', { state: { from: '/orders' } });
       return;
     }
-    fetchOrders({ page: 1, limit: 10, status: statusFilter || undefined });
-  }, [isAuthenticated, navigate, fetchOrders, statusFilter]);
+    // Only fetch on mount if not authenticated
+    if (!orders || orders.length === 0) {
+      fetchOrders({ page: 1, limit: 10 });
+    }
+  }, []); // Empty deps - only run once on mount
 
   const handlePageChange = (newPage: number) => {
-    fetchOrders({ page: newPage, limit, status: statusFilter || undefined });
+    fetchOrders({ page: newPage, limit: limit || 10, status: statusFilter || undefined });
   };
 
-  const totalPages = Math.ceil(total / limit);
+  const totalPages = limit > 0 ? Math.ceil(total / limit) : 0;
 
-  if (isLoading && orders.length === 0) {
+  if (isLoading && (!orders || orders.length === 0)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader />
@@ -83,7 +86,7 @@ export const OrderHistoryPage: React.FC = () => {
           </select>
         </div>
 
-        {orders.length === 0 ? (
+        {(!orders || orders.length === 0) ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />

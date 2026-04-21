@@ -56,11 +56,11 @@ export const ProductsPage: React.FC = () => {
     setEditingProduct(product);
     setFormData({
       name: product.name,
-      description: product.description,
-      price: product.price,
-      stock: product.stock,
-      categoryId: product.categoryId,
-      image: product.image,
+      description: product.description || '',
+      price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+      stock: product.stock || 0,
+      categoryId: String(product.category_id || ''),
+      image: product.image || '',
     });
     setShowModal(true);
   };
@@ -124,16 +124,16 @@ export const ProductsPage: React.FC = () => {
                       />
                       <div>
                         <div className="font-medium">{product.name}</div>
-                        <div className="text-sm text-gray-500">{product.description.substring(0, 50)}...</div>
+                        <div className="text-sm text-gray-500">{(product.description || '').substring(0, 50)}...</div>
                       </div>
                     </div>
                   </td>
                   <td className="py-3 px-4">
-                    {categories.find((c) => c.id === product.categoryId)?.name || '-'}
+                    {categories.find((c) => c.id === product.category_id)?.name || '-'}
                   </td>
-                  <td className="py-3 px-4 text-right">${product.price.toFixed(2)}</td>
+                  <td className="py-3 px-4 text-right">${product.price}</td>
                   <td className="py-3 px-4 text-right">
-                    <span className={product.stock < 10 ? 'text-red-600' : ''}>{product.stock}</span>
+                    <span className={(product.stock || 0) < 10 ? 'text-red-600' : ''}>{product.stock ?? '-'}</span>
                   </td>
                   <td className="py-3 px-4 text-right">
                     <button

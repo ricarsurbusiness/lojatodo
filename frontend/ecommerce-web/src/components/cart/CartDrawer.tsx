@@ -25,6 +25,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const drawerRef = useRef<HTMLDivElement>(null);
   const [isClosing, setIsClosing] = useState(false);
 
+  // Convert total to number if it's a string
+  const totalNum = typeof total === 'string' ? parseFloat(total) : total;
+  const shipping = totalNum > 100 ? 0 : 9.99;
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (drawerRef.current && !drawerRef.current.contains(event.target as Node)) {
@@ -60,9 +65,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   };
 
   if (!isOpen && !isClosing) return null;
-
-  const shipping = total > 100 ? 0 : 9.99;
-  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <div
@@ -123,7 +125,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       >
                         {item.productName}
                       </Link>
-                      <p className="text-gray-500 text-sm mt-1">${item.price.toFixed(2)}</p>
+                      <p className="text-gray-500 text-sm mt-1">
+                        ${typeof item.price === 'string' ? item.price : item.price.toFixed(2)}
+                      </p>
                       <div className="flex items-center gap-2 mt-2">
                         <button
                           onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
@@ -142,7 +146,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-medium">
+                        ${typeof item.price === 'string' 
+                          ? (parseFloat(item.price) * item.quantity).toFixed(2)
+                          : (item.price * item.quantity).toFixed(2)}
+                      </p>
                       <button
                         onClick={() => onRemove(item.productId)}
                         className="text-red-600 text-sm hover:text-red-700 mt-1"
@@ -160,7 +168,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="border-t border-gray-200 p-4 space-y-4">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>${total.toFixed(2)}</span>
+                <span>${totalNum.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-gray-600 text-sm">
                 <span>Shipping</span>
@@ -168,7 +176,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
               <div className="flex justify-between font-semibold text-lg">
                 <span>Total</span>
-                <span>${(total + shipping).toFixed(2)}</span>
+                <span>${(totalNum + shipping).toFixed(2)}</span>
               </div>
               
               <div className="space-y-2">

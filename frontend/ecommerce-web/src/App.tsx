@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { CartProvider } from './context/CartContext'
 import { OrderProvider } from './context/OrderContext'
@@ -18,10 +18,8 @@ import DashboardPage from './pages/admin/DashboardPage'
 import ProductsPage from './pages/admin/ProductsPage'
 import AdminOrdersPage from './pages/admin/AdminOrdersPage'
 import UsersPage from './pages/admin/UsersPage'
-
-const AdminLayout: React.FC = () => {
-  return <Outlet />;
-};
+import AnalyticsPage from './pages/admin/AnalyticsPage'
+import CategoriesPage from './pages/admin/CategoriesPage'
 
 function App() {
   return (
@@ -41,14 +39,41 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
-                <Route element={<ProtectedRoute requiredRole="admin" />}>
-                  <Route element={<AdminLayout />}>
-                    <Route path="/admin" element={<DashboardPage />} />
-                    <Route path="/admin/products" element={<ProductsPage />} />
-                    <Route path="/admin/orders" element={<AdminOrdersPage />} />
-                    <Route path="/admin/users" element={<UsersPage />} />
-                  </Route>
-                </Route>
+                
+                {/* Admin Routes - wrapped individually */}
+                <Route path="/admin" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/products" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <ProductsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/orders" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminOrdersPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute requiredRole="superAdmin">
+                    <UsersPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/analytics" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AnalyticsPage />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/categories" element={
+                  <ProtectedRoute requiredRole="admin">
+                    <CategoriesPage />
+                  </ProtectedRoute>
+                } />
+                
+                {/* Catch all - redirect to home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Layout>
           </OrderProvider>

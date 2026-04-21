@@ -5,6 +5,7 @@ from app.db.session import get_db
 from app.schemas.inventory_schema import (
     InventoryResponse,
     InventoryCreate,
+    InventoryUpdate,
     ReserveRequest,
     ReserveResponse,
     ConfirmRequest,
@@ -44,14 +45,41 @@ async def get_inventory(
 @router.post("", response_model=InventoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_inventory(
     request: InventoryCreate,
-    current_user: CurrentUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # No auth required - called internally by product-service
     inventory_service = InventoryService(db)
     inventory = await inventory_service.create_inventory(
         product_id=request.product_id,
         quantity=request.quantity
     )
+    
+    return InventoryResponse(
+        product_id=inventory.product_id,
+        quantity=inventory.quantity,
+        reserved_quantity=inventory.reserved_quantity,
+        available_quantity=inventory.available_quantity
+    )
+
+
+@router.put("/{product_id}", response_model=InventoryResponse)
+async def update_inventory(
+    product_id: int,
+    request: InventoryUpdate,
+    db: AsyncSession = Depends(get_db)
+):
+    # No auth required - called internally by product-service
+    inventory_service = InventoryService(db)
+    inventory = await inventory_service.update_inventory(
+        product_id=product_id,
+        quantity=request.quantity
+    )
+    
+    if not inventory:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Inventory not found for this product"
+        )
     
     return InventoryResponse(
         product_id=inventory.product_id,

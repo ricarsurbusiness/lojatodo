@@ -71,9 +71,9 @@ class CancelOrderResponse(BaseModel):
 
 
 class ShipOrderRequest(BaseModel):
-    tracking_number: str = Field(..., min_length=5)
-    carrier: str = Field(..., min_length=2)
-    estimated_delivery: datetime
+    tracking_number: Optional[str] = Field(None, min_length=5)
+    carrier: Optional[str] = Field(None, min_length=2)
+    estimated_delivery: Optional[datetime] = None
 
 
 class ShipOrderResponse(BaseModel):

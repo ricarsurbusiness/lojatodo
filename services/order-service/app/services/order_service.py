@@ -75,6 +75,10 @@ class OrderService:
 
     async def get_order(self, user_id: int, order_id: int) -> Optional[Order]:
         return await self.repo.get_user_order_by_id(user_id=user_id, order_id=order_id)
+    
+    async def get_order_admin(self, order_id: int) -> Optional[Order]:
+        """Get any order by ID (for admin users)"""
+        return await self.repo.get_order_by_id(order_id)
 
     async def cancel_order(self, user_id: int, order_id: int, token: Optional[str] = None) -> Optional[Order]:
         order = await self.repo.get_user_order_by_id(user_id=user_id, order_id=order_id)

@@ -20,7 +20,7 @@ type OrderAction =
   | { type: 'ORDER_CLEAR' };
 
 const initialState: OrderState = {
-  orders: [],
+  orders: [] as Order[],
   currentOrder: null,
   isLoading: false,
   error: null,
@@ -72,10 +72,10 @@ const OrderContext = createContext<OrderContextType | undefined>(undefined);
 export function OrderProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(orderReducer, initialState);
 
-  const createOrder = async (data: CreateOrderRequest): Promise<Order> => {
+  const createOrder = async (data: CreateOrderRequest, cartItems?: Array<{ productId: string; price: number }>): Promise<Order> => {
     dispatch({ type: 'ORDER_LOADING' });
     try {
-      const order = await orderService.createOrder(data);
+      const order = await orderService.createOrder(data, cartItems);
       dispatch({ type: 'CURRENT_ORDER_SUCCESS', payload: order });
       return order;
     } catch (error: unknown) {

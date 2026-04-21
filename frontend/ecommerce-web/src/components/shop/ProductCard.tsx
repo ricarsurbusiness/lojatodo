@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Product } from '../../types/product';
+import { useCart } from '../../context/CartContext';
 import { Button } from '../common/Button';
 
 interface ProductCardProps {
@@ -8,6 +9,24 @@ interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
+  const { addItem, isLoading: cartLoading } = useCart();
+  const [adding, setAdding] = useState(false);
+  const inStock = (product.stock || 0) > 0;
+
+  const handleAddToCart = async () => {
+    if (!inStock || adding) return;
+    
+    setAdding(true);
+    try {
+      // Ensure productId is a string
+      await addItem({ productId: String(product.id), quantity: 1 });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <Link to={`/products/${product.id}`}>
@@ -28,18 +47,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <p className="mt-1 text-sm text-gray-500 line-clamp-2">{product.description}</p>
         <div className="mt-4 flex items-center justify-between">
           <p className="text-xl font-bold text-gray-900">${typeof product.price === 'string' ? product.price : product.price.toFixed(2)}</p>
-          <span className={`text-sm ${(product.stock || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {(product.stock || 0) > 0 ? `${product.stock} in stock` : 'Out of stock'}
+          <span className={`text-sm ${inStock ? 'text-green-600' : 'text-red-600'}`}>
+            {inStock ? `${product.stock} in stock` : 'Out of stock'}
           </span>
         </div>
         <div className="mt-4">
           <Button
-            variant={(product.stock || 0) > 0 ? 'primary' : 'outline'}
+            variant={inStock ? 'primary' : 'outline'}
             size="sm"
             className="w-full"
-            disabled={(product.stock || 0) <= 0}
+            disabled={!inStock || adding}
+            onClick={handleAddToCart}
           >
-            {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+            {adding ? 'Adding...' : inStock ? 'Add to Cart' : 'Out of Stock'}
           </Button>
         </div>
       </div>

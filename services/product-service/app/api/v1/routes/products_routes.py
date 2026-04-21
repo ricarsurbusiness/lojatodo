@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
+import httpx
 
 from app.db.session import get_db
 from app.schemas.product_schema import ProductCreate, ProductResponse, ProductUpdate, ProductListResponse
@@ -8,6 +9,9 @@ from app.services.product_service import ProductService
 from app.core.dependencies import get_current_user, CurrentUser, require_role
 
 router = APIRouter(prefix="/products", tags=["products"])
+
+# Inventory service URL - internal Docker network
+INVENTORY_SERVICE_URL = "http://inventory-service:8005/api/v1/inventory"
 
 
 @router.get("", response_model=List[ProductListResponse])
@@ -47,6 +51,19 @@ async def create_product(
         price=request.price,
         category_id=request.category_id
     )
+    
+    # Create inventory for the product with initial stock
+    if request.stock > 0:
+        async with httpx.AsyncClient() as client:
+            try:
+                await client.post(
+                    INVENTORY_SERVICE_URL,
+                    json={"product_id": product.id, "quantity": request.stock}
+                )
+            except Exception as e:
+                # Log error but don't fail product creation
+                print(f"Failed to create inventory: {e}")
+    
     return product
 
 
@@ -67,6 +84,31 @@ async def update_product(
     )
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    
+    # Update inventory stock if provided
+    if request.stock is not None:
+        async with httpx.AsyncClient() as client:
+            try:
+                # First try to get existing inventory
+                response = await client.get(f"{INVENTORY_SERVICE_URL}/{product_id}")
+                if response.status_code == 200:
+                    # Update existing inventory - need to adjust quantity
+                    inventory = response.json()
+                    current_qty = inventory.get("quantity", 0)
+                    # Update: PUT to replace or POST to add
+                    await client.put(
+                        f"{INVENTORY_SERVICE_URL}/{product_id}",
+                        json={"quantity": request.stock}
+                    )
+                else:
+                    # Create new inventory
+                    await client.post(
+                        INVENTORY_SERVICE_URL,
+                        json={"product_id": product_id, "quantity": request.stock}
+                    )
+            except Exception as e:
+                print(f"Failed to update inventory: {e}")
+    
     return product
 
 

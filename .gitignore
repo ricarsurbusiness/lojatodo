@@ -62,3 +62,9 @@ logs/
 # Misc
 *.bak
 *.tmp
+
+# OpenSpecs (Spec-Driven Development artifacts)
+.openspecs/
+.sdd/
+sdd/
+*.openspec.yaml

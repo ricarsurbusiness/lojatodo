@@ -31,7 +31,7 @@ export const CartItemComponent: React.FC<CartItemProps> = ({ item, onUpdateQuant
         <Link to={`/products/${item.productId}`} className="text-lg font-semibold text-gray-900 hover:text-blue-600 truncate block">
           {item.productName}
         </Link>
-        <p className="text-gray-500 mt-1">${item.price.toFixed(2)}</p>
+        <p className="text-gray-500 mt-1">${typeof item.price === 'string' ? item.price : item.price.toFixed(2)}</p>
       </div>
       
       <div className="flex items-center gap-2">

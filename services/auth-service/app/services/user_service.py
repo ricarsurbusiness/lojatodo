@@ -26,7 +26,7 @@ class UserService:
         if "admin" in current_user.roles and role_name == "admin":
             raise ValueError("Only superAdmin can assign admin role")
         
-        if role_name not in ["admin", "cliente"]:
+        if role_name not in ["admin", "cliente", "superAdmin"]:
             raise ValueError("Invalid role")
         
         target_user = await self.user_repo.get_by_id(target_user_id)
@@ -34,3 +34,14 @@ class UserService:
             raise ValueError("User not found")
         
         return await self.user_repo.assign_role(target_user, role_name)
+    
+    async def remove_role(self, target_user_id: int, role_name: str, current_user: CurrentUser) -> User:
+        # Only admins can remove roles
+        if role_name not in ["admin", "cliente", "superAdmin"]:
+            raise ValueError("Invalid role")
+        
+        target_user = await self.user_repo.get_by_id(target_user_id)
+        if not target_user:
+            raise ValueError("User not found")
+        
+        return await self.user_repo.remove_role(target_user, role_name)
