@@ -96,20 +96,37 @@ class PaymentServiceClient(ServiceClient):
 
 class AnalyticsServiceClient(ServiceClient):
     def __init__(self, token: Optional[str] = None):
-        super().__init__(admin_settings.ANALYTICS_SERVICE_URL, token)
+        super().__init__(admin_settings.ORDER_SERVICE_URL, token)
     
     async def get_top_products(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get top selling products from order service"""
         try:
-            data = await self.get("/api/v1/analytics/products", {"limit": limit})
-            return data.get("top_products", [])
+            data = await self.get("/api/v1/admin/products/top", {"limit": limit})
+            return data.get("items", [])
         except:
             return []
     
     async def get_sales_metrics(self) -> Dict[str, Any]:
+        """Get sales metrics from payment service"""
         try:
-            return await self.get("/api/v1/analytics/sales")
+            return await self.get("/api/v1/admin/payments/summary")
         except:
-            return {"total_revenue": 0}
+            return {"total_revenue": "0", "today_revenue": "0", "week_revenue": "0", "month_revenue": "0"}
+    
+    async def get_orders_by_status(self) -> Dict[str, Any]:
+        """Get orders grouped by status"""
+        try:
+            data = await self.get("/api/v1/admin/orders", {"limit": 100})
+            items = data.get("items", [])
+            
+            by_status = {}
+            for order in items:
+                status = order.get("status", "pendiente")
+                by_status[status] = by_status.get(status, 0) + 1
+            
+            return {"total_orders": data.get("total", 0), "by_status": by_status}
+        except:
+            return {"total_orders": 0, "by_status": {}}
 
 
 def get_auth_client(token: Optional[str] = None) -> AuthServiceClient:

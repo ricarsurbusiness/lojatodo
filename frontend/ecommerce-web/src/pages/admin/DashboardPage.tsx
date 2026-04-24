@@ -8,6 +8,7 @@ export const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const isSuperAdmin = user?.roles?.includes('superAdmin');
+  const isAdmin = user?.roles?.includes('admin');
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -128,6 +129,15 @@ export const DashboardPage: React.FC = () => {
             <h3 className="font-semibold text-lg mb-2">Orders</h3>
             <p className="text-gray-500 text-sm">View and manage orders</p>
           </Link>
+          {isSuperAdmin && (
+            <Link
+              to="/admin/categories"
+              className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+            >
+              <h3 className="font-semibold text-lg mb-2">Categories</h3>
+              <p className="text-gray-500 text-sm">Manage product categories</p>
+            </Link>
+          )}
           {isSuperAdmin && (
             <Link
               to="/admin/users"

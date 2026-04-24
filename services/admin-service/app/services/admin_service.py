@@ -1,11 +1,11 @@
 from typing import Dict, Any, List, Optional
 from decimal import Decimal
+from datetime import datetime, timedelta
 
 from app.services.clients import (
     get_auth_client,
     get_order_client,
     get_payment_client,
-    get_analytics_client,
     AuthServiceClient,
     OrderServiceClient,
 )
@@ -17,7 +17,6 @@ async def get_dashboard_data(token: Optional[str] = None) -> Dict[str, Any]:
     auth = get_auth_client(token)
     order = get_order_client(token)
     payment = get_payment_client(token)
-    analytics = get_analytics_client(token)
     
     try:
         total_users = await auth.get_user_count()
@@ -26,20 +25,51 @@ async def get_dashboard_data(token: Optional[str] = None) -> Dict[str, Any]:
         errors.append({"service": "auth", "error": str(e)})
     
     try:
-        total_orders = await order.get_order_count()
+        # Get all orders to calculate totals
+        orders_data = await order.get_orders(page=1, limit=100)
+        all_orders = orders_data.get("items", [])
+        total_orders = orders_data.get("total", 0)
     except Exception as e:
         total_orders = 0
+        all_orders = []
         errors.append({"service": "order", "error": str(e)})
     
     try:
-        revenue_data = await payment.get_total_revenue()
-        total_revenue = Decimal(str(revenue_data.get("total_revenue", 0)))
+        # Calculate revenue from orders directly
+        total_revenue = Decimal("0")
+        today = datetime.now().date()
+        
+        for o in all_orders:
+            amount = Decimal(str(o.get("total_amount", 0)))
+            total_revenue += amount
+        
+        # Calculate by period
+        week_ago = today - timedelta(days=7)
+        month_ago = today - timedelta(days=30)
+        
+        week_revenue = Decimal("0")
+        month_revenue = Decimal("0")
+        
+        for o in all_orders:
+            created_at = o.get("created_at", "")
+            if created_at:
+                try:
+                    order_date = datetime.fromisoformat(created_at.replace("Z", "")).date()
+                    amount = Decimal(str(o.get("total_amount", 0)))
+                    
+                    if order_date >= month_ago:
+                        month_revenue += amount
+                    if order_date >= week_ago:
+                        week_revenue += amount
+                except:
+                    pass
     except Exception as e:
         total_revenue = Decimal("0")
-        errors.append({"service": "payment", "error": str(e)})
+        week_revenue = Decimal("0")
+        month_revenue = Decimal("0")
+        errors.append({"service": "order", "error": str(e)})
     
     try:
-        orders_data = await order.get_orders(page=1, limit=10)
         recent_orders = [
             {
                 "id": o.get("id"),
@@ -48,26 +78,41 @@ async def get_dashboard_data(token: Optional[str] = None) -> Dict[str, Any]:
                 "total_amount": Decimal(str(o.get("total_amount", 0))),
                 "created_at": o.get("created_at")
             }
-            for o in orders_data.get("items", [])
+            for o in orders_data.get("items", [])[:10]
         ]
     except Exception as e:
         recent_orders = []
         errors.append({"service": "order", "error": str(e)})
     
+    # Get top products from order items (simplified)
     try:
-        top_products_data = await analytics.get_top_products(limit=10)
-        top_products = [
-            {
-                "product_id": p.get("product_id"),
-                "name": p.get("name", ""),
-                "quantity_sold": p.get("quantity_sold", 0),
-                "revenue": Decimal(str(p.get("revenue", 0)))
-            }
-            for p in top_products_data
-        ]
+        product_sales: Dict[str, Dict] = {}
+        for o in all_orders:
+            for item in o.get("items", []):
+                product_id = str(item.get("product_id", "?"))
+                if product_id not in product_sales:
+                    product_sales[product_id] = {"quantity": 0, "revenue": Decimal("0"), "name": f"Product {product_id}"}
+                qty = item.get("quantity", 1)
+                price = Decimal(str(item.get("unit_price", 0)))
+                product_sales[product_id]["quantity"] += qty
+                product_sales[product_id]["revenue"] += price * qty
+        
+        top_products = sorted(
+            [
+                {
+                    "product_id": pid,
+                    "name": data["name"],
+                    "quantity_sold": data["quantity"],
+                    "revenue": data["revenue"]
+                }
+                for pid, data in product_sales.items()
+            ],
+            key=lambda x: x["quantity_sold"],
+            reverse=True
+        )[:10]
     except Exception as e:
         top_products = []
-        errors.append({"service": "analytics", "error": str(e)})
+        errors.append({"service": "order", "error": str(e)})
     
     return {
         "total_users": total_users,

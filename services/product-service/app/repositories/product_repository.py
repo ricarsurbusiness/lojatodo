@@ -9,12 +9,13 @@ class ProductRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
     
-    async def create(self, name: str, description: Optional[str], price: float, category_id: Optional[int] = None) -> Product:
+    async def create(self, name: str, description: Optional[str], price: float, category_id: Optional[int] = None, user_id: Optional[int] = None) -> Product:
         product = Product(
             name=name,
             description=description,
             price=price,
-            category_id=category_id
+            category_id=category_id,
+            user_id=user_id
         )
         self.db.add(product)
         await self.db.commit()
@@ -40,6 +41,12 @@ class ProductRepository:
             )
         
         query = query.offset(skip).limit(limit)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
+    async def get_by_user_id(self, user_id: int, skip: int = 0, limit: int = 20) -> List[Product]:
+        """Get all products created by a specific user"""
+        query = select(Product).where(Product.user_id == user_id).offset(skip).limit(limit)
         result = await self.db.execute(query)
         return list(result.scalars().all())
     

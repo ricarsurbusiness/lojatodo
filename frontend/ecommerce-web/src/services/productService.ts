@@ -32,6 +32,7 @@ export const productService = {
     limit?: number;
     category?: string;
     search?: string;
+    user_id?: number;  // Filter by seller (for storefront view)
   }): Promise<GetProductsResponse> {
     const response = await api.get<Product[]>('/api/v1/products', { params });
     const products = response.data;

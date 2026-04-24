@@ -6,13 +6,14 @@ from app.db.session import Base
 
 
 class Product(Base):
-    __tablename__ = 'products'
+    __tablename__ = "products"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False, index=True)
     description = Column(Text, nullable=True)
     price = Column(Numeric(10, 2), nullable=False)
-    category_id = Column(Integer, ForeignKey('categories.id'), nullable=True)
+    category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
+    user_id = Column(Integer, nullable=True, index=True)  # Owner of the product (FK to auth-service users)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     

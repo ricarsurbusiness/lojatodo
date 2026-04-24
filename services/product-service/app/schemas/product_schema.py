@@ -28,6 +28,7 @@ class ProductResponse(BaseModel):
     description: Optional[str]
     price: Decimal
     category_id: Optional[int]
+    user_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 

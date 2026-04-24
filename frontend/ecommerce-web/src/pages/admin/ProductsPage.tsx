@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import productService, { Product, Category } from '../../services/productService';
+import { useAuth } from '../../context/AuthContext';
 
 export const ProductsPage: React.FC = () => {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,13 +19,18 @@ export const ProductsPage: React.FC = () => {
   });
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (user?.id) {
+      fetchData();
+    }
+  }, [user?.id]);
 
   const fetchData = async () => {
+    if (!user?.id) return;
     try {
+      // Filter by current user (their own products only)
+      const userId = user?.id ? parseInt(user.id) : undefined;
       const [productsData, categoriesData] = await Promise.all([
-        productService.getProducts({ limit: 100 }),
+        productService.getProducts({ limit: 100, user_id: userId }),
         productService.getCategories(),
       ]);
       setProducts(productsData.products);

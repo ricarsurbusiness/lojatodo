@@ -98,7 +98,23 @@ export const Header: React.FC = () => {
                       to="/admin"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      Admin
+                      Admin Dashboard
+                    </Link>
+                  )}
+                  {user?.roles?.includes('superAdmin') && (
+                    <Link
+                      to="/admin/categories"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Categories
+                    </Link>
+                  )}
+                  {user?.roles?.includes('superAdmin') && (
+                    <Link
+                      to="/admin/users"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      User Management
                     </Link>
                   )}
                   <button

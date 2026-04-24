@@ -11,14 +11,18 @@ class ProductService:
         self.db = db
         self.product_repo = ProductRepository(db)
     
-    async def create_product(self, name: str, description: Optional[str], price: Decimal, category_id: Optional[int] = None) -> Product:
-        return await self.product_repo.create(name, description, float(price), category_id)
+    async def create_product(self, name: str, description: Optional[str], price: Decimal, category_id: Optional[int] = None, user_id: Optional[int] = None) -> Product:
+        return await self.product_repo.create(name, description, float(price), category_id, user_id)
     
     async def get_product(self, product_id: int) -> Optional[Product]:
         return await self.product_repo.get_by_id(product_id)
     
     async def list_products(self, skip: int = 0, limit: int = 20, search: Optional[str] = None) -> List[Product]:
         return await self.product_repo.get_all(skip, limit, search)
+    
+    async def list_products_by_user(self, user_id: int, skip: int = 0, limit: int = 20) -> List[Product]:
+        """List products created by a specific user (seller storefront)"""
+        return await self.product_repo.get_by_user_id(user_id, skip, limit)
     
     async def count_products(self, search: Optional[str] = None) -> int:
         return await self.product_repo.count(search)

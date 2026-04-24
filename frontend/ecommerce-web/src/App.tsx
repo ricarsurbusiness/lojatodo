@@ -67,7 +67,7 @@ function App() {
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/categories" element={
-                  <ProtectedRoute requiredRole="admin">
+                  <ProtectedRoute requiredRole="superAdmin">
                     <CategoriesPage />
                   </ProtectedRoute>
                 } />
